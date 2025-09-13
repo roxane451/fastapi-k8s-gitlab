@@ -1,14 +1,29 @@
-FROM node:16-alpine
+FROM python:3.11-slim
 
+# Installer les outils de compilation
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Mettre à jour pip
+RUN pip install --upgrade pip
+
+# Définir le répertoire de travail
 WORKDIR /app
 
-COPY package*.json ./
-RUN npm ci --only=production
+# Copier les dépendances
+COPY requirements.txt ./
 
+# Installer les dépendances
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le code
 COPY . .
 
-EXPOSE 3000
+# Exposer le port défini par la variable d'environnement PORT
+EXPOSE ${PORT:-8000}
 
-USER node
-
-CMD ["npm", "start"]
+# Lancer l'application avec Uvicorn, utilisant la variable PORT
+CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000}"]

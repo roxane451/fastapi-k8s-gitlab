@@ -1,0 +1,19 @@
+apiVersion: v2
+name: literate-giggle
+description: A Helm chart for Literate Giggle microservices application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+
+keywords:
+  - microservices
+  - api
+  - kubernetes
+
+maintainers:
+  - name: Roxane
+    email: roxane451@gmail.com
+
+home: https://github.com/roxane451/literate-giggle-gitlab
+sources:
+  - https://github.com/roxane451/literate-giggle-gitlab
