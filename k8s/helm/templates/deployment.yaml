@@ -5,11 +5,10 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $.Release.Name }}-{{ $service }}
-  namespace: {{ $.Release.Namespace }}
+  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $service }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
-    app.kubernetes.io/component: {{ $service }}
 spec:
   replicas: {{ $config.replicaCount | default 1 }}
   selector:
@@ -21,7 +20,6 @@ spec:
       labels:
         app.kubernetes.io/name: {{ $service }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
-        app.kubernetes.io/component: {{ $service }}
     spec:
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -38,12 +36,8 @@ spec:
         env:
         - name: PORT
           value: "{{ $config.port }}"
-        - name: NODE_ENV
-          value: "production"
-        - name: SERVICE_NAME
-          value: "{{ $service }}"
-        {{- if $config.additionalEnv }}
-        {{- toYaml $config.additionalEnv | nindent 8 }}
+        {{- if $config.env }}
+        {{- toYaml $config.env | nindent 8 }}
         {{- end }}
         {{- if $config.resources }}
         resources:
@@ -52,40 +46,25 @@ spec:
         {{- if $config.livenessProbe }}
         livenessProbe:
           {{- toYaml $config.livenessProbe | nindent 10 }}
-        {{- else }}
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: http
-          initialDelaySeconds: 30
-          periodSeconds: 10
         {{- end }}
         {{- if $config.readinessProbe }}
         readinessProbe:
           {{- toYaml $config.readinessProbe | nindent 10 }}
-        {{- else }}
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: http
-          initialDelaySeconds: 5
-          periodSeconds: 5
         {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $.Release.Name }}-{{ $service }}
-  namespace: {{ $.Release.Namespace }}
+  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $service }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
-    app.kubernetes.io/component: {{ $service }}
 spec:
   type: {{ $config.service.type | default "ClusterIP" }}
   ports:
   - port: {{ $config.service.port | default $config.port }}
-    targetPort: http
+    targetPort: {{ $config.port }}
     protocol: TCP
     name: http
   selector:
@@ -100,10 +79,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Release.Name }}-ingress
-  namespace: {{ $.Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: {{ $.Release.Name }}
-    app.kubernetes.io/instance: {{ $.Release.Name }}
+  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
   {{- if .Values.ingress.annotations }}
   annotations:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
@@ -113,18 +89,13 @@ spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   rules:
-  {{- range .Values.ingress.hosts }}
-  - host: {{ .host | quote }}
-    http:
+  - http:
       paths:
-      {{- range .paths }}
-      - path: {{ .path }}
-        pathType: {{ .pathType | default "Prefix" }}
+      - path: /
+        pathType: Prefix
         backend:
           service:
             name: {{ $.Release.Name }}-gateway
             port:
-              number: {{ $.Values.services.gateway.service.port | default $.Values.services.gateway.port }}
-      {{- end }}
-  {{- end }}
+              number: {{ .Values.services.gateway.service.port | default .Values.services.gateway.port }}
 {{- end }}
