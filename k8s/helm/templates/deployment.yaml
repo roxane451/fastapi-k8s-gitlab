@@ -1,14 +1,15 @@
 {{- range $service, $config := .Values.services }}
-{{- if $config.enabled }}
+{{- if $config.enabled | default true }}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ $.Release.Name }}-{{ $service }}
-  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $service }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: {{ $service }}
 spec:
   replicas: {{ $config.replicaCount | default 1 }}
   selector:
@@ -20,6 +21,7 @@ spec:
       labels:
         app.kubernetes.io/name: {{ $service }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: {{ $service }}
     spec:
       {{- if $.Values.global.imagePullSecrets }}
       imagePullSecrets:
@@ -27,6 +29,7 @@ spec:
       {{- end }}
       containers:
       - name: {{ $service }}
+        # CORRIGÉ: Ajout du fallback pour tag avec "latest"
         image: "{{ $config.image.repository }}:{{ $config.image.tag | default "latest" }}"
         imagePullPolicy: {{ $config.image.pullPolicy | default "IfNotPresent" }}
         ports:
@@ -36,8 +39,12 @@ spec:
         env:
         - name: PORT
           value: "{{ $config.port }}"
-        {{- if $config.env }}
-        {{- toYaml $config.env | nindent 8 }}
+        - name: NODE_ENV
+          value: "production"
+        - name: SERVICE_NAME
+          value: "{{ $service }}"
+        {{- if $config.additionalEnv }}
+        {{- toYaml $config.additionalEnv | nindent 8 }}
         {{- end }}
         {{- if $config.resources }}
         resources:
@@ -46,25 +53,40 @@ spec:
         {{- if $config.livenessProbe }}
         livenessProbe:
           {{- toYaml $config.livenessProbe | nindent 10 }}
+        {{- else }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
         {{- end }}
         {{- if $config.readinessProbe }}
         readinessProbe:
           {{- toYaml $config.readinessProbe | nindent 10 }}
+        {{- else }}
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
         {{- end }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: {{ $.Release.Name }}-{{ $service }}
-  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
+  namespace: {{ $.Release.Namespace }}
   labels:
     app.kubernetes.io/name: {{ $service }}
     app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: {{ $service }}
 spec:
   type: {{ $config.service.type | default "ClusterIP" }}
   ports:
   - port: {{ $config.service.port | default $config.port }}
-    targetPort: {{ $config.port }}
+    targetPort: http
     protocol: TCP
     name: http
   selector:
@@ -73,13 +95,16 @@ spec:
 {{- end }}
 {{- end }}
 
-{{- if .Values.ingress.enabled }}
+{{- if and .Values.ingress .Values.ingress.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $.Release.Name }}-ingress
-  namespace: {{ $.Values.global.namespace | default $.Release.Namespace }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: {{ $.Release.Name }}
+    app.kubernetes.io/instance: {{ $.Release.Name }}
   {{- if .Values.ingress.annotations }}
   annotations:
     {{- toYaml .Values.ingress.annotations | nindent 4 }}
@@ -89,13 +114,18 @@ spec:
   ingressClassName: {{ .Values.ingress.className }}
   {{- end }}
   rules:
-  - http:
+  {{- range .Values.ingress.hosts }}
+  - host: {{ .host | quote }}
+    http:
       paths:
-      - path: /
-        pathType: Prefix
+      {{- range .paths }}
+      - path: {{ .path }}
+        pathType: {{ .pathType | default "Prefix" }}
         backend:
           service:
             name: {{ $.Release.Name }}-gateway
             port:
-              number: {{ .Values.services.gateway.service.port | default .Values.services.gateway.port }}
+              number: {{ $.Values.services.gateway.service.port | default $.Values.services.gateway.port }}
+      {{- end }}
+  {{- end }}
 {{- end }}

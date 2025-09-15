@@ -1,10 +1,12 @@
 FROM python:3.11-slim
 
-# Installer les outils de compilation
+# Installer les outils de compilation et les dépendances nécessaires pour httptools
 RUN apt-get update && apt-get install -y \
     build-essential \
     gcc \
     g++ \
+    python3-dev \
+    libpcre3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Mettre à jour pip

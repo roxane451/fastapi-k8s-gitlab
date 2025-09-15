@@ -1,0 +1,14 @@
+[init]
+	defaultBranch = none
+[fetch]
+	recurseSubmodules = false
+[credential]
+	interactive = never
+[gc]
+	autoDetach = false
+[http]
+	extraHeader = X-Gitaly-Correlation-ID: 00881eca845847daab74b3a730e1b40b
+[transfer]
+	bundleURI = true
+[http "https://gitlab.com"]
+	sslCAInfo = /Users/roxane/literate-giggle-gitlab/builds/r-sgdIko5/0/roxane451/literate-giggle-gitlab.tmp/CI_SERVER_TLS_CA_FILE
