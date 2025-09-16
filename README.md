@@ -54,14 +54,3 @@
 
 ##Documentation Page
 ![ScreenShot](https://github.com/DataScientest/gitlab_devops_exams/blob/main/docs.png)
-
-
-##Architecture
-┌─────────────────┐    tcp://docker:2375    ┌─────────────────┐
-│   ubuntu:22.04  │  ◄─────────────────────► │ docker:24.0.7-  │
-│                 │                          │      dind       │
-│ docker-ce-cli   │                          │ (daemon Docker) │
-│ kubectl         │                          │                 │
-│ helm            │                          │                 │
-│ minikube        │                          │                 │
-└─────────────────┘                          └─────────────────┘
