@@ -1,0 +1,7 @@
+.env
+.env.override
+gateway/.env
+users/.env
+orders/.env
+*.sqlite3
+*.db

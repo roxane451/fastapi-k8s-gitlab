@@ -8,7 +8,7 @@ services:
             context: ./gateway
             dockerfile: Dockerfile
         env_file:
-            - ./gateway/.env
+            - .env
         ports:
           - 8001:8000
         depends_on:
@@ -16,6 +16,10 @@ services:
           - orders
         volumes:
           - ./gateway:/app
+        environment:
+          - USERS_SERVICE_URL=${USERS_SERVICE_URL:-http://users:8082}
+          - ORDERS_SERVICE_URL=${ORDERS_SERVICE_URL:-http://orders:8081}
+          - SECRET_KEY=${SECRET_KEY:-dev-secret}
 
     users:
         image: baranbartu/k-users:latest
@@ -24,9 +28,11 @@ services:
             context: ./users
             dockerfile: Dockerfile
         env_file:
-            - ./users/.env
+            - .env
         volumes:
           - ./users:/app
+        environment:
+          - DATABASE_URL=${USERS_DATABASE_URL:-sqlite:///users.db}
 
     orders:
         image: baranbartu/k-orders:latest
@@ -35,6 +41,8 @@ services:
             context: ./orders
             dockerfile: Dockerfile
         env_file:
-            - ./orders/.env
+            - .env
         volumes:
           - ./orders:/app
+        environment:
+          - DATABASE_URL=${ORDERS_DATABASE_URL:-sqlite:///orders.db}
