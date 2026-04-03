@@ -21,6 +21,7 @@ services:
       requests:
         cpu: 100m
         memory: 128Mi
+    envFromSecret: gateway-secret
 
   orders:
     enabled: true
@@ -40,6 +41,7 @@ services:
       requests:
         cpu: 100m
         memory: 128Mi
+    envFromSecret: orders-secret
 
   users:
     enabled: true
@@ -59,6 +61,17 @@ services:
       requests:
         cpu: 100m
         memory: 128Mi
+    envFromSecret: users-secret
+
+# Secret configuration used by templates
+gateway:
+  secretKey: ""
+  usersServiceUrl: "http://users:8082"
+  ordersServiceUrl: "http://orders:8081"
+users:
+  databaseUrl: "sqlite://db.sqlite3"
+orders:
+  databaseUrl: "sqlite://db.sqlite3"
 
 # Configuration ingress
 ingress:

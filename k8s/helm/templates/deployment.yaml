@@ -43,6 +43,11 @@ spec:
           value: "production"
         - name: SERVICE_NAME
           value: "{{ $service }}"
+        {{- if $config.envFromSecret }}
+        envFrom:
+        - secretRef:
+            name: {{ $.Release.Name }}-{{ $service }}-secret
+        {{- end }}
         {{- if $config.additionalEnv }}
         {{- toYaml $config.additionalEnv | nindent 8 }}
         {{- end }}
